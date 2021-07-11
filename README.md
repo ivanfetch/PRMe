@@ -4,6 +4,8 @@ Pull Request Me (PR-me) creates a pull request for the entire content of a Githu
 
 ## Sample Usage
 
+* Set the `GH_TOKEN` environment variable to a [Github personal access token](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token) that has the `repo` scope; permission.
+
 ```
 $ pr-me UserName/RepositoryName
 Created pull request at https://github.com/UserName/RepositoryName/pulls/1
