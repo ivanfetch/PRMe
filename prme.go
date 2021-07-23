@@ -8,17 +8,51 @@ import (
 )
 
 type client struct {
-	token string
+	token, apiHost string
+	httpClient     *http.Client
 }
 
-func New(token string) (*client, error) {
-	return &client{
-		token: token,
-	}, nil
+// clientOption specifies prme client options as functions.
+type clientOption func(*client) error
+
+// WithAPIHost sets the Github API hostname for an instance of the client.
+func WithAPIHost(host string) clientOption {
+	return func(c *client) error {
+		c.apiHost = host
+		return nil
+	}
+}
+
+// WithHTTPClient sets a custom net/http.Client for an instance of the client.
+func WithHTTPClient(hc *http.Client) clientOption {
+	return func(c *client) error {
+		c.httpClient = hc
+		return nil
+	}
+}
+
+func New(token string, options ...clientOption) (*client, error) {
+	if token == "" {
+		return nil, fmt.Errorf("the Github token can not be an empty string, please specify a personal access token")
+	}
+
+	c := &client{
+		token:   token,
+		apiHost: "https://api.github.com",
+	}
+
+	for _, o := range options {
+		err := o(c)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return c, nil
 }
 
 func (c client) GetRepoID(repo string) (int64, error) {
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s", repo)
+	apiURL := fmt.Sprintf("%s/repos/%s", c.apiHost, repo)
 	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
 		return 0, err
@@ -26,8 +60,7 @@ func (c client) GetRepoID(repo string) (int64, error) {
 
 	req.Header.Add("Authorization", fmt.Sprintf("token %s", c.token))
 
-	hc := http.Client{}
-	resp, err := hc.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return 0, err
 	}
