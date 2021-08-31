@@ -8,81 +8,36 @@ import (
 	"testing"
 )
 
-func TestConnectToGithubAPIIntegration(t *testing.T) {
-	t.Parallel()
-
-	g, err := prme.New(os.Getenv("GH_TOKEN"))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	got, err := g.GetRepoID("github/docs")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	var want int64 = 189621607 // ID for github/docs repo
-	if got != want {
-		t.Fatalf("got %d, want %d", got, want)
-	}
-}
-
-func TestCreateOrphanBranchIntegration(t *testing.T) {
+func TestCreateFullPullRequestIntegration(t *testing.T) {
 	t.Parallel()
 
 	repo := "ivanfetch/ghapitest"
-	branch := "test2"
+	PRTitle := "review-integration"
+	PRBody := "Review of full repository"
+	PRBaseBranch := "fullpullrequest-orphan-integration"
+	PRHeadBranch := "fullpullrequest-review-integration"
 
 	g, err := prme.New(os.Getenv("GH_TOKEN"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ok, err := g.BranchExists(repo, branch)
+	PRID, err := g.CreateFullPullRequest(repo, "main", PRTitle, PRBody, PRBaseBranch, PRHeadBranch)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ok {
-		t.Fatalf("Branch %q already exists on repository %q", branch, repo)
-	}
+	t.Logf("created pull request %d", PRID)
 
-	err = g.CreateOrphanBranch(repo, branch)
+	err = g.ClosePullRequest(repo, PRID)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("while cleaning up pull request: %v", err)
 	}
-
-	ok, err = g.BranchExists(repo, branch)
+	err = g.DeleteBranch(repo, PRHeadBranch)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("while cleaning up head branch %q: %v", PRHeadBranch, err)
 	}
-	if !ok {
-		t.Fatalf("Branch %q does not actually exists on repository %q", branch, repo)
-	}
-}
-
-func TestCreateEmptyTreeCommitIntegration(t *testing.T) {
-	t.Parallel()
-
-	repo := "ivanfetch/ghapitest"
-
-	g, err := prme.New(os.Getenv("GH_TOKEN"))
+	err = g.DeleteBranch(repo, PRBaseBranch)
 	if err != nil {
-		t.Fatal(err)
-	}
-
-	got, err := g.CreateEmptyTreeCommit(repo)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got == "" {
-		t.Fatalf("empty sha returned creating an empty-tree commit in repository %q", repo)
-	}
-
-	ok, err := g.CommitExists(repo, got)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !ok {
-		t.Fatalf("empty-tree commit %q does not actually exist in repository %q", got, repo)
+		t.Fatalf("while cleaning up base branch %q: %v", PRBaseBranch, err)
 	}
 }
