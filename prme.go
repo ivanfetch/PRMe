@@ -1,7 +1,9 @@
 package prme
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -32,9 +34,9 @@ func WithHTTPClient(hc *http.Client) clientOption {
 	}
 }
 
-func New(token string, options ...clientOption) (*client, error) {
+func NewClient(token string, options ...clientOption) (*client, error) {
 	if token == "" {
-		return nil, fmt.Errorf("the Github token can not be an empty string, please specify a personal access token")
+		return nil, errors.New("the Github token can not be an empty string, please specify a personal access token")
 	}
 
 	c := &client{
@@ -52,14 +54,66 @@ func New(token string, options ...clientOption) (*client, error) {
 	return c, nil
 }
 
-func (c client) CommitExists(repo, ref string) (bool, error) {
-	apiURL := fmt.Sprintf("%s/repos/%s/git/commits/%s", c.apiHost, repo, ref)
-	req, err := http.NewRequest("GET", apiURL, nil)
+func (c *client) MakeAPIRequest(method, URI string) (*http.Response, error) {
+	if strings.HasPrefix(URI, "/") == false {
+		URI = "/" + URI
+	}
+	URL := c.apiHost + URI
+	req, err := http.NewRequest(method, URL, nil)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	req.Header.Add("Authorization", fmt.Sprintf("token %s", c.token))
 	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *client) MakeAPIRequestWithData(method, URI string, body []byte) (*http.Response, error) {
+	if strings.HasPrefix(URI, "/") == false {
+		URI = "/" + URI
+	}
+	URL := c.apiHost + URI
+	req, err := http.NewRequest(method, URL, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Authorization", fmt.Sprintf("token %s", c.token))
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+type repo struct {
+	client       *client
+	ownerAndName string
+}
+
+func (r repo) String() string {
+	return r.ownerAndName
+}
+
+func NewRepo(ownerAndName, token string, clientOptions ...clientOption) (*repo, error) {
+	if ownerAndName == "" {
+		return nil, errors.New("the repository can not be empty")
+	}
+	client, err := NewClient(token, clientOptions...)
+	if err != nil {
+		return nil, fmt.Errorf("while constructing client for repository: %w", err)
+	}
+	return &repo{
+		client:       client,
+		ownerAndName: ownerAndName,
+	}, nil
+}
+
+func (r repo) CommitExists(ref string) (bool, error) {
+	apiURI := fmt.Sprintf("/repos/%s/git/commits/%s", r, ref)
+	resp, err := r.client.MakeAPIRequest(http.MethodGet, apiURI)
 	if err != nil {
 		return false, err
 	}
@@ -68,7 +122,7 @@ func (c client) CommitExists(repo, ref string) (bool, error) {
 		return false, nil
 	}
 	if resp.StatusCode != http.StatusOK {
-		return false, fmt.Errorf("HTTP %d for %s while getting commit %q in repository %q", resp.StatusCode, apiURL, ref, repo)
+		return false, fmt.Errorf("HTTP %d for %s while getting commit %q in repository %q", resp.StatusCode, apiURI, ref, r)
 	}
 	var commitAPIResp struct{ Sha string }
 	err = json.NewDecoder(resp.Body).Decode(&commitAPIResp)
@@ -81,207 +135,172 @@ func (c client) CommitExists(repo, ref string) (bool, error) {
 	return true, nil
 }
 
-func (c client) CreateEmptyTreeCommit(repo string) (string, error) {
-	apiURL := fmt.Sprintf("%s/repos/%s/git/commits", c.apiHost, repo)
+func (r repo) CreateEmptyTreeCommit() (string, error) {
+	apiURI := fmt.Sprintf("/repos/%s/git/commits", r)
 	// A commit to the Git builtin "empty tree."
 	commitJSON := `{"message":"empty-tree commit","tree":"4b825dc642cb6eb9a060e54bf8d69288fbee4904"}`
-	req, err := http.NewRequest("POST", apiURL, strings.NewReader(commitJSON))
+	resp, err := r.client.MakeAPIRequestWithData(http.MethodPost, apiURI, []byte(commitJSON))
 	if err != nil {
 		return "", err
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("token %s", c.token))
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusCreated {
-		return "", fmt.Errorf("HTTP %d for %s while creating empty-tree commit for repository %q", resp.StatusCode, apiURL, repo)
+		return "", fmt.Errorf("HTTP %d for %s while creating empty-tree commit for repository %q", resp.StatusCode, apiURI, r)
 	}
 	var commitAPIResp struct{ Sha string }
 	err = json.NewDecoder(resp.Body).Decode(&commitAPIResp)
 	if err != nil {
 		return "", err
 	}
+	defer resp.Body.Close()
 	return commitAPIResp.Sha, nil
 }
 
-func (c client) BranchExists(repo, branch string) (bool, error) {
-	apiURL := fmt.Sprintf("%s/repos/%s/branches/%s", c.apiHost, repo, branch)
-	req, err := http.NewRequest("GET", apiURL, nil)
+func (r repo) BranchExists(branch string) (bool, error) {
+	apiURI := fmt.Sprintf("/repos/%s/branches/%s", r, branch)
+	resp, err := r.client.MakeAPIRequest(http.MethodGet, apiURI)
 	if err != nil {
 		return false, err
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("token %s", c.token))
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return false, err
-	}
-	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusNotFound {
 		return false, nil
 	}
 	if resp.StatusCode != http.StatusOK {
-		return false, fmt.Errorf("unexpected HTTP %d for %s while determining if branch %q exists in repository %q", resp.StatusCode, apiURL, branch, repo)
+		return false, fmt.Errorf("unexpected HTTP %d for %s while determining if branch %q exists in repository %q", resp.StatusCode, apiURI, branch, r)
 	}
 	var branchAPIResp struct{ Name string }
 	err = json.NewDecoder(resp.Body).Decode(&branchAPIResp)
 	if err != nil {
 		return false, err
 	}
+	defer resp.Body.Close()
 	if branchAPIResp.Name != branch {
 		return false, fmt.Errorf("incorrect name %q returned while checking if branch %q exists", branchAPIResp.Name, branch)
 	}
 	return true, nil
 }
 
-func (c client) CreateBranch(repo, branch, commitSha string) error {
-	apiURL := fmt.Sprintf("%s/repos/%s/git/refs", c.apiHost, repo)
+func (r repo) CreateBranch(branch, commitSha string) error {
+	apiURI := fmt.Sprintf("/repos/%s/git/refs", r)
 	branchJSON := fmt.Sprintf(`{"ref":"refs/heads/%s","sha":"%s"}`, branch, commitSha)
-	req, err := http.NewRequest("POST", apiURL, strings.NewReader(branchJSON))
-	if err != nil {
-		return err
-	}
-	req.Header.Add("Authorization", fmt.Sprintf("token %s", c.token))
-	resp, err := c.httpClient.Do(req)
+	resp, err := r.client.MakeAPIRequestWithData(http.MethodPost, apiURI, []byte(branchJSON))
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("HTTP %d for %s while creating branch %q using commit %q in repository %q", resp.StatusCode, apiURL, branch, commitSha, repo)
+		return fmt.Errorf("HTTP %d for %s while creating branch %q using commit %q in repository %q", resp.StatusCode, apiURI, branch, commitSha, r)
 	}
 	return nil
 }
 
 // MergeBranch merges headBranch into baseBranch in the given repository.
-func (c client) MergeBranch(repo, baseBranch, headBranch string) error {
-	apiURL := fmt.Sprintf("%s/repos/%s/merges", c.apiHost, repo)
+func (r repo) MergeBranch(baseBranch, headBranch string) error {
+	apiURI := fmt.Sprintf("/repos/%s/merges", r)
 	mergeJSON := fmt.Sprintf(`{"base":"%s","head":"%s"}`, baseBranch, headBranch)
-	req, err := http.NewRequest("POST", apiURL, strings.NewReader(mergeJSON))
-	if err != nil {
-		return err
-	}
-	req.Header.Add("Authorization", fmt.Sprintf("token %s", c.token))
-	resp, err := c.httpClient.Do(req)
+	resp, err := r.client.MakeAPIRequestWithData(http.MethodPost, apiURI, []byte(mergeJSON))
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("HTTP %d for %s while merging branch %q into %q in repository %q", resp.StatusCode, apiURL, headBranch, baseBranch, repo)
+		return fmt.Errorf("HTTP %d for %s while merging branch %q into %q in repository %q", resp.StatusCode, apiURI, headBranch, baseBranch, r)
 	}
 	return nil
 }
 
 // CreatePullRequest creates a pull request using the specified title, body,
 // and branches, returning the PR ID.
-func (c client) CreatePullRequest(title, body, repo, baseBranch, headBranch string) (PRNumber int, err error) {
-	apiURL := fmt.Sprintf("%s/repos/%s/pulls", c.apiHost, repo)
+func (r repo) CreatePullRequest(title, body, baseBranch, headBranch string) (PRNumber int, err error) {
+	apiURI := fmt.Sprintf("/repos/%s/pulls", r)
 	PRJSON := fmt.Sprintf(`{"title":"%s","body":"%s","base":"%s","head":"%s"}`, title, body, baseBranch, headBranch)
-	req, err := http.NewRequest("POST", apiURL, strings.NewReader(PRJSON))
+	resp, err := r.client.MakeAPIRequestWithData(http.MethodPost, apiURI, []byte(PRJSON))
 	if err != nil {
 		return 0, err
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("token %s", c.token))
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return 0, err
-	}
-	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusCreated {
-		return 0, fmt.Errorf("HTTP %d for %s while creating pull request in repository %q, base branch %q, and head branch %q", resp.StatusCode, apiURL, repo, baseBranch, headBranch)
+		return 0, fmt.Errorf("HTTP %d for %s while creating pull request in repository %q, base branch %q, and head branch %q", resp.StatusCode, apiURI, r, baseBranch, headBranch)
 	}
 	var PRAPIResp struct{ Number *int }
 	err = json.NewDecoder(resp.Body).Decode(&PRAPIResp)
 	if err != nil {
 		return 0, err
 	}
+	defer resp.Body.Close()
 	if PRAPIResp.Number == nil {
-		return 0, fmt.Errorf("Github API did not return a pull request ID")
+		return 0, errors.New("the Github API did not return a pull request number")
 	}
 	return *PRAPIResp.Number, nil
 }
 
-func (c client) CreateFullPullRequest(repo, fullRepoBranch, PRTitle, PRBody, PRBaseBranch, PRHeadBranch string) (int, error) {
-	ok, err := c.BranchExists(repo, fullRepoBranch)
+func (r repo) CreateFullPullRequest(fullRepoBranch, PRTitle, PRBody, PRBaseBranch, PRHeadBranch string) (int, error) {
+	ok, err := r.BranchExists(fullRepoBranch)
 	if err != nil {
 		return 0, err
 	}
 	if !ok {
-		return 0, fmt.Errorf("full repository branch %q does not exist in repository %q", fullRepoBranch, repo)
+		return 0, fmt.Errorf("full repository branch %q does not exist in repository %q", fullRepoBranch, r)
 	}
-	ok, err = c.BranchExists(repo, PRBaseBranch)
+	ok, err = r.BranchExists(PRBaseBranch)
 	if err != nil {
 		return 0, err
 	}
 	if ok {
-		return 0, fmt.Errorf("base branch %q already exists in repository %q", PRBaseBranch, repo)
+		return 0, fmt.Errorf("base branch %q already exists in repository %q", PRBaseBranch, r)
 	}
-	ok, err = c.BranchExists(repo, PRHeadBranch)
+	ok, err = r.BranchExists(PRHeadBranch)
 	if err != nil {
 		return 0, err
 	}
 	if ok {
-		return 0, fmt.Errorf("head branch %q already exists in repository %q", PRHeadBranch, repo)
+		return 0, fmt.Errorf("head branch %q already exists in repository %q", PRHeadBranch, r)
 	}
 
-	emptyCommit, err := c.CreateEmptyTreeCommit(repo)
+	emptyCommit, err := r.CreateEmptyTreeCommit()
 	if err != nil {
 		return 0, err
 	}
-	err = c.CreateBranch(repo, PRBaseBranch, emptyCommit)
+	err = r.CreateBranch(PRBaseBranch, emptyCommit)
 	if err != nil {
 		return 0, err
 	}
-	err = c.CreateBranch(repo, PRHeadBranch, emptyCommit)
+	err = r.CreateBranch(PRHeadBranch, emptyCommit)
 	if err != nil {
 		return 0, err
 	}
-	err = c.MergeBranch(repo, PRHeadBranch, fullRepoBranch)
+	err = r.MergeBranch(PRHeadBranch, fullRepoBranch)
 	if err != nil {
 		return 0, err
 	}
-	PRID, err := c.CreatePullRequest(PRTitle, PRBody, repo, PRBaseBranch, PRHeadBranch)
+	PRNum, err := r.CreatePullRequest(PRTitle, PRBody, PRBaseBranch, PRHeadBranch)
 	if err != nil {
 		return 0, err
 	}
-	return PRID, nil
+	return PRNum, nil
 }
 
-func (c client) DeleteBranch(repo, branch string) error {
-	apiURL := fmt.Sprintf("%s/repos/%s/git/refs/heads/%s", c.apiHost, repo, branch)
-	req, err := http.NewRequest("DELETE", apiURL, nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Add("Authorization", fmt.Sprintf("token %s", c.token))
-	resp, err := c.httpClient.Do(req)
+func (r repo) DeleteBranch(branch string) error {
+	apiURI := fmt.Sprintf("/repos/%s/git/refs/heads/%s", r, branch)
+	resp, err := r.client.MakeAPIRequest(http.MethodDelete, apiURI)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("HTTP %d for %s while deleting branch %q in repository %q", resp.StatusCode, apiURL, branch, repo)
+		return fmt.Errorf("HTTP %d for %s while deleting branch %q in repository %q", resp.StatusCode, apiURI, branch, r)
 	}
 	return nil
 }
 
-func (c client) ClosePullRequest(repo string, ID int) error {
-	apiURL := fmt.Sprintf("%s/repos/%s/pulls/%d", c.apiHost, repo, ID)
+func (r repo) ClosePullRequest(number int) error {
+	apiURI := fmt.Sprintf("/repos/%s/pulls/%d", r, number)
 	PRJSON := `{"state":"closed"}`
-	req, err := http.NewRequest("PATCH", apiURL, strings.NewReader(PRJSON))
-	if err != nil {
-		return err
-	}
-	req.Header.Add("Authorization", fmt.Sprintf("token %s", c.token))
-	resp, err := c.httpClient.Do(req)
+	resp, err := r.client.MakeAPIRequestWithData(http.MethodPatch, apiURI, []byte(PRJSON))
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("HTTP %d for %s while closing pull request %d in repository %q", resp.StatusCode, apiURL, ID, repo)
+		return fmt.Errorf("HTTP %d for %s while closing pull request %d in repository %q", resp.StatusCode, apiURI, number, r)
 	}
 	return nil
 }

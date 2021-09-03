@@ -13,8 +13,6 @@ func TestCommitExists(t *testing.T) {
 	t.Parallel()
 
 	testFileName := "testdata/TestCommitExists.json"
-	repo := "ivanfetch/ghapitest"
-	commitSha := "87d2b8f97a27554711c1eb0d1bb0f8f623a2af25"
 
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wantRequestURL := "/repos/ivanfetch/ghapitest/git/commits/87d2b8f97a27554711c1eb0d1bb0f8f623a2af25"
@@ -34,7 +32,7 @@ func TestCommitExists(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	g, err := prme.New("dummy token",
+	r, err := prme.NewRepo("ivanfetch/ghapitest", "dummy token",
 		prme.WithHTTPClient(ts.Client()),
 		prme.WithAPIHost(ts.URL),
 	)
@@ -42,13 +40,14 @@ func TestCommitExists(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ok, err := g.CommitExists(repo, commitSha)
+	commitSha := "87d2b8f97a27554711c1eb0d1bb0f8f623a2af25"
+	ok, err := r.CommitExists(commitSha)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if !ok {
-		t.Fatalf("commit %q not found in repository %s, using test data file %s", commitSha, repo, testFileName)
+		t.Fatalf("commit %q not found in repository %s, using test data file %s", commitSha, r, testFileName)
 	}
 }
 
@@ -56,8 +55,6 @@ func TestCommitNotExists(t *testing.T) {
 	t.Parallel()
 
 	testFileName := "testdata/TestCommitNotExists.json"
-	repo := "ivanfetch/ghapitest"
-	commitSha := "will-not-exist"
 
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wantRequestURL := "/repos/ivanfetch/ghapitest/git/commits/will-not-exist"
@@ -78,7 +75,7 @@ func TestCommitNotExists(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	g, err := prme.New("dummy token",
+	r, err := prme.NewRepo("ivanfetch/ghapitest", "dummy token",
 		prme.WithHTTPClient(ts.Client()),
 		prme.WithAPIHost(ts.URL),
 	)
@@ -86,13 +83,14 @@ func TestCommitNotExists(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ok, err := g.CommitExists(repo, commitSha)
+	commitSha := "will-not-exist"
+	ok, err := r.CommitExists(commitSha)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if ok {
-		t.Fatalf("commit %q found in repository %s, using test data file %s", commitSha, repo, testFileName)
+		t.Fatalf("commit %q found in repository %s, using test data file %s", commitSha, r, testFileName)
 	}
 }
 
@@ -100,8 +98,6 @@ func TestCommitExistsWithIncorrectJSONReturnsError(t *testing.T) {
 	t.Parallel()
 
 	testFileName := "testdata/TestCommitExistsWithIncorrectJSONReturnsError.json"
-	repo := "ivanfetch/ghapitest"
-	commitSha := "will-not-match"
 
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wantRequestURL := "/repos/ivanfetch/ghapitest/git/commits/will-not-match"
@@ -121,7 +117,7 @@ func TestCommitExistsWithIncorrectJSONReturnsError(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	g, err := prme.New("dummy token",
+	r, err := prme.NewRepo("ivanfetch/ghapitest", "dummy token",
 		prme.WithHTTPClient(ts.Client()),
 		prme.WithAPIHost(ts.URL),
 	)
@@ -129,9 +125,10 @@ func TestCommitExistsWithIncorrectJSONReturnsError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = g.CommitExists(repo, commitSha)
+	commitSha := "will-not-match"
+	_, err = r.CommitExists(commitSha)
 	if err == nil {
-		t.Fatalf("error expected, looking for commit %q in repository %q, using test data file %q", commitSha, repo, testFileName)
+		t.Fatalf("error expected, looking for commit %q in repository %q, using test data file %q", commitSha, r, testFileName)
 	}
 }
 
@@ -139,8 +136,6 @@ func TestBranchExists(t *testing.T) {
 	t.Parallel()
 
 	testFileName := "testdata/TestBranchExists.json"
-	repo := "ivanfetch/ghapitest"
-	branch := "test"
 
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wantRequestURL := "/repos/ivanfetch/ghapitest/branches/test"
@@ -160,7 +155,7 @@ func TestBranchExists(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	g, err := prme.New("dummy token",
+	r, err := prme.NewRepo("ivanfetch/ghapitest", "dummy token",
 		prme.WithHTTPClient(ts.Client()),
 		prme.WithAPIHost(ts.URL),
 	)
@@ -168,13 +163,14 @@ func TestBranchExists(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ok, err := g.BranchExists(repo, branch)
+	branch := "test"
+	ok, err := r.BranchExists(branch)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if !ok {
-		t.Fatalf("branch %q not found in repository %s, using test data file %s", branch, repo, testFileName)
+		t.Fatalf("branch %q not found in repository %s, using test data file %s", branch, r, testFileName)
 	}
 }
 
@@ -182,8 +178,6 @@ func TestBranchNotExists(t *testing.T) {
 	t.Parallel()
 
 	testFileName := "testdata/TestBranchNotExists.json"
-	repo := "ivanfetch/ghapitest"
-	branch := "test"
 
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wantRequestURL := "/repos/ivanfetch/ghapitest/branches/test"
@@ -204,7 +198,7 @@ func TestBranchNotExists(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	g, err := prme.New("dummy token",
+	r, err := prme.NewRepo("ivanfetch/ghapitest", "dummy token",
 		prme.WithHTTPClient(ts.Client()),
 		prme.WithAPIHost(ts.URL),
 	)
@@ -212,13 +206,14 @@ func TestBranchNotExists(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ok, err := g.BranchExists(repo, branch)
+	branch := "test"
+	ok, err := r.BranchExists(branch)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if ok {
-		t.Fatalf("branch %q found in repository %s, using test data file %s", branch, repo, testFileName)
+		t.Fatalf("branch %q found in repository %s, using test data file %s", branch, r, testFileName)
 	}
 }
 
@@ -226,8 +221,6 @@ func TestBranchExistsWithIncorrectJSONReturnsError(t *testing.T) {
 	t.Parallel()
 
 	testFileName := "testdata/TestBranchExistsWithIncorrectJSONReturnsError.json"
-	repo := "ivanfetch/ghapitest"
-	branch := "will-not-match"
 
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wantRequestURL := "/repos/ivanfetch/ghapitest/branches/will-not-match"
@@ -247,7 +240,7 @@ func TestBranchExistsWithIncorrectJSONReturnsError(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	g, err := prme.New("dummy token",
+	r, err := prme.NewRepo("ivanfetch/ghapitest", "dummy token",
 		prme.WithHTTPClient(ts.Client()),
 		prme.WithAPIHost(ts.URL),
 	)
@@ -255,18 +248,17 @@ func TestBranchExistsWithIncorrectJSONReturnsError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = g.BranchExists(repo, branch)
+	branch := "will-not-match"
+	_, err = r.BranchExists(branch)
 	if err == nil {
-		t.Fatalf("error expected, looking for branch %q in repository %q, using test data file %q", branch, repo, testFileName)
+		t.Fatalf("error expected, looking for branch %q in repository %q, using test data file %q", branch, r, testFileName)
 	}
-
 }
 
 func TestCreateEmptyTreeCommit(t *testing.T) {
 	t.Parallel()
 
 	testFileName := "testdata/TestCreateEmptyTreeCommit.json"
-	repo := "ivanfetch/ghapitest"
 
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wantRequestURL := "/repos/ivanfetch/ghapitest/git/commits"
@@ -287,7 +279,7 @@ func TestCreateEmptyTreeCommit(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	g, err := prme.New("dummy token",
+	r, err := prme.NewRepo("ivanfetch/ghapitest", "dummy token",
 		prme.WithHTTPClient(ts.Client()),
 		prme.WithAPIHost(ts.URL),
 	)
@@ -295,7 +287,7 @@ func TestCreateEmptyTreeCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := g.CreateEmptyTreeCommit(repo)
+	got, err := r.CreateEmptyTreeCommit()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -310,10 +302,9 @@ func TestCreateEmptyTreeCommitInNonexistentRepositoryReturnsError(t *testing.T) 
 	t.Parallel()
 
 	testFileName := "testdata/TestCreateEmptyTreeCommitInNonexistentRepositoryReturnsError.json"
-	repo := "nonexistent-repository"
 
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		wantRequestURL := "/repos/nonexistent-repository/git/commits"
+		wantRequestURL := "/repos/ivanfetch/nonexistent-repository/git/commits"
 		gotRequestURL := r.RequestURI
 		if wantRequestURL != gotRequestURL {
 			t.Errorf("Want %q for Github URL, got %q", wantRequestURL, gotRequestURL)
@@ -331,7 +322,7 @@ func TestCreateEmptyTreeCommitInNonexistentRepositoryReturnsError(t *testing.T) 
 	}))
 	defer ts.Close()
 
-	g, err := prme.New("dummy token",
+	r, err := prme.NewRepo("ivanfetch/nonexistent-repository", "dummy token",
 		prme.WithHTTPClient(ts.Client()),
 		prme.WithAPIHost(ts.URL),
 	)
@@ -339,9 +330,9 @@ func TestCreateEmptyTreeCommitInNonexistentRepositoryReturnsError(t *testing.T) 
 		t.Fatal(err)
 	}
 
-	got, err := g.CreateEmptyTreeCommit(repo)
+	got, err := r.CreateEmptyTreeCommit()
 	if err == nil {
-		t.Fatalf("created commit %q in repository %q", got, repo)
+		t.Fatalf("created commit %q in repository %q", got, r)
 	}
 }
 
@@ -349,9 +340,6 @@ func TestCreateBranch(t *testing.T) {
 	t.Parallel()
 
 	testFileName := "testdata/TestCreateBranch.json"
-	repo := "ivanfetch/ghapitest"
-	commitSha := "28ee640a8ce0c22adf3534c7f5971286bfd30642"
-	branch := "test"
 
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wantRequestURL := "/repos/ivanfetch/ghapitest/git/refs"
@@ -372,7 +360,7 @@ func TestCreateBranch(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	g, err := prme.New("dummy token",
+	r, err := prme.NewRepo("ivanfetch/ghapitest", "dummy token",
 		prme.WithHTTPClient(ts.Client()),
 		prme.WithAPIHost(ts.URL),
 	)
@@ -380,7 +368,9 @@ func TestCreateBranch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = g.CreateBranch(repo, branch, commitSha)
+	commitSha := "28ee640a8ce0c22adf3534c7f5971286bfd30642"
+	branch := "test"
+	err = r.CreateBranch(branch, commitSha)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -413,13 +403,13 @@ func TestCreateBranchReturnsError(t *testing.T) {
 		ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			gotRequestURL := r.RequestURI
 			if tc.wantRequestURL != gotRequestURL {
-				t.Errorf("Want %q for Github URL, got %q using repository %q, branch %q, and commit sha %q", tc.wantRequestURL, gotRequestURL, tc.repo, tc.branch, tc.commitSha)
+				t.Errorf("Want %q for Github URL, got %q using test case %v", tc.wantRequestURL, gotRequestURL, tc)
 			}
 			w.WriteHeader(tc.returnHTTPStatusCode)
 		}))
 		defer ts.Close()
 
-		g, err := prme.New("dummy token",
+		r, err := prme.NewRepo(tc.repo, "dummy token",
 			prme.WithHTTPClient(ts.Client()),
 			prme.WithAPIHost(ts.URL),
 		)
@@ -427,9 +417,9 @@ func TestCreateBranchReturnsError(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		err = g.CreateBranch(tc.repo, tc.branch, tc.commitSha)
+		err = r.CreateBranch(tc.branch, tc.commitSha)
 		if err == nil {
-			t.Errorf("expected error, using repository %q, branch %q, and commit sha %q", tc.repo, tc.branch, tc.commitSha)
+			t.Errorf("expected error, using repository %q, branch %q, and commit sha %q", r, tc.branch, tc.commitSha)
 		}
 	}
 }
@@ -438,9 +428,6 @@ func TestMergeBranch(t *testing.T) {
 	t.Parallel()
 
 	testFileName := "testdata/TestMergeBranch.json"
-	repo := "ivanfetch/ghapitest"
-	baseBranch := "review"
-	headBranch := "main"
 
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wantRequestURL := "/repos/ivanfetch/ghapitest/merges"
@@ -461,7 +448,7 @@ func TestMergeBranch(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	g, err := prme.New("dummy token",
+	r, err := prme.NewRepo("ivanfetch/ghapitest", "dummy token",
 		prme.WithHTTPClient(ts.Client()),
 		prme.WithAPIHost(ts.URL),
 	)
@@ -469,7 +456,9 @@ func TestMergeBranch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = g.MergeBranch(repo, baseBranch, headBranch)
+	baseBranch := "review"
+	headBranch := "main"
+	err = r.MergeBranch(baseBranch, headBranch)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -508,22 +497,22 @@ func TestMergeBranchReturnsError(t *testing.T) {
 		ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			gotRequestURL := r.RequestURI
 			if tc.wantRequestURL != gotRequestURL {
-				t.Errorf("Want %q for Github URL, got %q using repository %q, base branch %q, and head branch %q", tc.wantRequestURL, gotRequestURL, tc.repo, tc.baseBranch, tc.headBranch)
+				t.Errorf("Want %q for Github URL, got %q using test case %v", tc.wantRequestURL, gotRequestURL, tc)
 			}
 			w.WriteHeader(tc.returnHTTPStatusCode)
 		}))
 		defer ts.Close()
 
-		g, err := prme.New("dummy token",
+		r, err := prme.NewRepo(tc.repo, "dummy token",
 			prme.WithHTTPClient(ts.Client()),
 			prme.WithAPIHost(ts.URL),
 		)
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = g.MergeBranch(tc.repo, tc.baseBranch, tc.headBranch)
+		err = r.MergeBranch(tc.baseBranch, tc.headBranch)
 		if err == nil {
-			t.Errorf("expected error, using repository %q, base branch %q, and head branch %q", tc.repo, tc.baseBranch, tc.headBranch)
+			t.Errorf("expected error, using repository %q, base branch %q, and head branch %q", r, tc.baseBranch, tc.headBranch)
 		}
 	}
 }
@@ -532,11 +521,6 @@ func TestCreatePullRequest(t *testing.T) {
 	t.Parallel()
 
 	testFileName := "testdata/TestCreatePullRequest.json"
-	title := "test1"
-	body := "A full review of this repository"
-	repo := "ivanfetch/ghapitest"
-	baseBranch := "orphan"
-	headBranch := "review"
 
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wantRequestURL := "/repos/ivanfetch/ghapitest/pulls"
@@ -557,7 +541,7 @@ func TestCreatePullRequest(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	g, err := prme.New("dummy token",
+	r, err := prme.NewRepo("ivanfetch/ghapitest", "dummy token",
 		prme.WithHTTPClient(ts.Client()),
 		prme.WithAPIHost(ts.URL),
 	)
@@ -565,7 +549,11 @@ func TestCreatePullRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := g.CreatePullRequest(title, body, repo, baseBranch, headBranch)
+	title := "test1"
+	body := "A full review of this repository"
+	baseBranch := "orphan"
+	headBranch := "review"
+	got, err := r.CreatePullRequest(title, body, baseBranch, headBranch)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -607,23 +595,22 @@ func TestCreatePullRequestReturnsError(t *testing.T) {
 		ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			gotRequestURL := r.RequestURI
 			if tc.wantRequestURL != gotRequestURL {
-				t.Errorf("Want %q for Github URL, got %q using repository %q, base branch %q, and head branch %q", tc.wantRequestURL, gotRequestURL, tc.repo, tc.baseBranch, tc.headBranch)
+				t.Errorf("Want %q for Github URL, got %q using test case %v", tc.wantRequestURL, gotRequestURL, tc)
 			}
 			w.WriteHeader(tc.returnHTTPStatusCode)
 		}))
 		defer ts.Close()
 
-		g, err := prme.New("dummy token",
+		r, err := prme.NewRepo(tc.repo, "dummy token",
 			prme.WithHTTPClient(ts.Client()),
 			prme.WithAPIHost(ts.URL),
 		)
 		if err != nil {
 			t.Fatal(err)
 		}
-
-		_, err = g.CreatePullRequest("title not used", "body not used", tc.repo, tc.baseBranch, tc.headBranch)
+		_, err = r.CreatePullRequest("title not used", "body not used", tc.baseBranch, tc.headBranch)
 		if err == nil {
-			t.Fatalf("error expected using repository %q, base branch %q, and head branch %q", tc.repo, tc.baseBranch, tc.headBranch)
+			t.Fatalf("error expected using repository %q, base branch %q, and head branch %q", r, tc.baseBranch, tc.headBranch)
 		}
 	}
 }
