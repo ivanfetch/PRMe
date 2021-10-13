@@ -14,8 +14,7 @@ import (
 
 func TestCreateFullPullRequestIntegration(t *testing.T) {
 	/* Perhaps use this instead of the +build line
-	   _, runTest := os.LookupEnv("PRME_INTEGRATION_TESTS")
-	   	if runTest == false {
+	   if os.Getenv("PRME_INTEGRATION_TESTS") == "" {
 	   		t.Skip("set the PRME_INTEGRATION_TESTS environment variable to run integration tests")
 	   	}
 	*/
@@ -25,10 +24,10 @@ func TestCreateFullPullRequestIntegration(t *testing.T) {
 	PRURL, err := prme.CreateFullPullRequest("ivanfetch/ghapitest",
 		prme.WithFullRepoBranch("main"),
 		prme.WithToken(os.Getenv("GH_TOKEN")),
-		prme.WithTitle("non-default PR title"),
-		prme.WithBody("nondefault PR body / first comment"),
-		prme.WithBaseBranchName("nondefault-orphan-branch"),
-		prme.WithHeadBranchName("nondefault-review-branch"),
+		prme.WithTitle("integration test"),
+		prme.WithBody("integration test"),
+		prme.WithBaseBranchName("integrationtest-review-branch"),
+		prme.WithHeadBranchName("integrationtest-content-branch"),
 	)
 
 	if err != nil {
@@ -41,11 +40,11 @@ func TestCreateFullPullRequestIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("while cleaning up pull request: %v", err)
 	}
-	err = deleteBranch(os.Getenv("GH_TOKEN"), "ivanfetch/ghapiteest", "nondefault-review-branch")
+	err = deleteBranch(os.Getenv("GH_TOKEN"), "ivanfetch/ghapiteest", "integrationtest-content-branch")
 	if err != nil {
 		t.Fatalf("while cleaning up head branch: %v", err)
 	}
-	err = deleteBranch(os.Getenv("GH_TOKEN"), "ivanfetch/ghapitest", "nondefault-orphan-branch")
+	err = deleteBranch(os.Getenv("GH_TOKEN"), "ivanfetch/ghapitest", "integrationtest-review-branch")
 	if err != nil {
 		t.Fatalf("while cleaning up base branch: %v", err)
 	}

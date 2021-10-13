@@ -604,9 +604,9 @@ func TestNewFullPullRequestCreatorFromArgs(t *testing.T) {
 				Repo:           "dummyRepo",
 				FullRepoBranch: "main",
 				Title:          "Full Review",
-				Body:           "A full review of the entire repository. When this PR is complete, be sure to manually merge the head (review) branch into the main branch for this repository.",
-				BaseBranch:     "prme-orphan",
-				HeadBranch:     "prme-review",
+				Body:           "A full review of the entire repository. When this PR is complete, be sure to manually merge its base branch into the main branch for this repository.",
+				BaseBranch:     "prme-full-review",
+				HeadBranch:     "prme-full-content",
 			},
 		},
 		{
