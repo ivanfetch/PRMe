@@ -1,7 +1,7 @@
 BINARY=prme
 DOCKER_TAG=pr-me
 DOCKER_REGISTRY=ivanfetch
-VERSION= $(shell git describe --tags --dirty 2>/dev/null || echo snapshot)
+VERSION= $(shell (git describe --tags --dirty 2>/dev/null || echo dev) |cut -dv -f2)
 GIT_COMMIT=$(shell git rev-parse HEAD)
 LDFLAGS="-s -w -X prme.Version=$(VERSION) -X prme.GitCommit=$(GIT_COMMIT)"
 

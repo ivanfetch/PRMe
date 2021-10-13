@@ -1,0 +1,33 @@
+builds:
+- main: cmd/main.go
+  binary: prme
+  ldflags: -s -w -X prme.Version={{.Version}} -X prme.GitCommit={{.Commit}}
+  env:
+  - CGO_ENABLED=0
+  goos:
+  - linux
+  - darwin
+  - windows
+  goarch:
+  - arm64
+  - amd64
+  goarm:
+  - 6
+  - 7
+archives:
+  - replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      amd64: x86_64
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Date }}-snapshot"
+changelog:
+  filters:
+    exclude:
+    - '^docs:'
+    - '^test:'
+    - Initial commit
+

@@ -4,11 +4,15 @@ Pull Request Me (PR-me) creates a pull request for the entire content of a Githu
 
 ## Usage
 
+**Note this has not yet been tested on Windows!**
+
 * Set the `GH_TOKEN` environment variable to a [Github personal access token](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token) that has the `repo` scope; permission.
 	* Note that the `repo` scope allows access to any repository that is available to your Github account - there currently is no more granular repository permission available.
 * Have [Git](https://git-scm.com/downloads) installed.
 	* Be sure Github SSH access to clone and push repositories work correctly, using URLs of the form `ssh://git@github.com/...`.
-* Build this PR-me tool - after downloading or cloning this repository: `make build`
+* Install this pr-me tool by either:
+	* [Downloading a release](https://github.com/ivanfetch/pr-me/releases)
+	* Building after downloading or cloning this repository: `make build`
 
 ```
 $ ./prme UserName/RepositoryName
