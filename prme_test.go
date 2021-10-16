@@ -12,22 +12,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestGitCommand(t *testing.T) {
-	t.Parallel()
-	_, err := prme.RunGitCommand(os.TempDir(), "version")
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestGitCommandReturnsError(t *testing.T) {
-	t.Parallel()
-	got, err := prme.RunGitCommand(os.TempDir(), "dummyCommand")
-	if err == nil {
-		t.Fatalf("expected error for command git dummyCommand, got %q", got)
-	}
-}
-
 func TestRepoExists(t *testing.T) {
 	t.Parallel()
 
