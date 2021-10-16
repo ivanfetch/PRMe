@@ -656,6 +656,7 @@ func TestNewFullPullRequestCreatorFromArgs(t *testing.T) {
 		if err != nil {
 			t.Fatalf("for test-case %s, %v", tc.description, err)
 		}
+		t.Logf("test %q got FullPullRequestCreator: %+v", tc.description, got)
 
 		cmpOptions := cmp.AllowUnexported(*got)
 		if !cmp.Equal(tc.want, *got, cmpOptions) {

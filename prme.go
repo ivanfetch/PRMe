@@ -442,12 +442,12 @@ func (f FullPullRequestCreator) Create() (string, error) {
 	return PRURL, nil
 }
 
-func envVarOrDefault(envVarName, defaultValue string) string {
-	envValue := os.Getenv(envVarName)
-	if envValue != "" {
-		return envValue
+func flagOrEnvValue(f *flag.Flag) {
+	envVarName := "PRME_" + strings.ToUpper(f.Name)
+	envVarValue := os.Getenv(envVarName)
+	if envVarValue != "" && f.Value.String() == f.DefValue {
+		_ = f.Value.Set(envVarValue)
 	}
-	return defaultValue
 }
 
 func NewFullPullRequestCreatorFromArgs(args []string, output, errOutput io.Writer) (*FullPullRequestCreator, error) {
@@ -456,10 +456,20 @@ func NewFullPullRequestCreatorFromArgs(args []string, output, errOutput io.Write
 	fs.Usage = func() {
 		fmt.Fprintf(errOutput, `Usage: %s [flags] <repository>
 The <repository> should be of the form OwnerName/RepositoryName
+For example: %s ivanfetch/pr-me
 
-Flags override defaults. The defaults shown below, reflect environment variable values.
-		`, fs.Name())
+		`, fs.Name(), fs.Name())
 		fs.PrintDefaults()
+		fmt.Fprintf(errOutput, `The following environment variables override defaults. Command-line flags will override everything.
+
+		<Environment Variable>	<Current Value>
+PRME_FBRANCH	%q
+PRME_TITLE	%q
+PRME_BODY	%q
+PRME_BBRANCH	%q
+PRME_HBRANCH	%q
+`,
+			os.Getenv("PRME_FBRANCH"), os.Getenv("PRME_TITLE"), os.Getenv("PRME_BODY"), os.Getenv("PRME_BBRANCH"), os.Getenv("PRME_HBRANCH"))
 	}
 
 	defaultValues, err := NewFullPullRequestCreator("dummyRepo")
@@ -468,15 +478,16 @@ Flags override defaults. The defaults shown below, reflect environment variable 
 	}
 
 	CLIVersion := fs.Bool("version", false, "Display the version and git commit.")
-	CLIFullRepoBranch := fs.String("fbranch", envVarOrDefault("PRME_FBRANCH", defaultValues.FullRepoBranch), "The name of the existing branch that contains repository content to be reviewed. This is also set via the PRME_FBRANCH environment variable.")
-	CLITitle := fs.String("title", envVarOrDefault("PRME_TITLE", defaultValues.Title), "The title of the pull request. This is also set via the PRME_TITLE environment variable.")
-	CLIBody := fs.String("body", envVarOrDefault("PRME_BODY", defaultValues.Body), "The body; first comment of the pull request. This is also set via the PRME_TITLE environment variable.")
-	CLIBaseBranch := fs.String("bbranch", envVarOrDefault("PRME_BBRANCH", defaultValues.BaseBranch), "The name of the base orphan branch to create for the pull request.This is also set via the PRME_BBRANCH environment variable.")
-	CLIHeadBranch := fs.String("hbranch", envVarOrDefault("PRME_HBRANCH", defaultValues.HeadBranch), "The name of the head review branch to create for the pull request, where review fixes should be pushed. This is also set via the PRME_HBRANCH environment variable.")
+	CLIFullRepoBranch := fs.String("fbranch", defaultValues.FullRepoBranch, "The name of the existing branch that contains repository content to be reviewed. This is also set via the PRME_FBRANCH environment variable.")
+	CLITitle := fs.String("title", defaultValues.Title, "The title of the pull request. This is also set via the PRME_TITLE environment variable.")
+	CLIBody := fs.String("body", defaultValues.Body, "The body; first comment of the pull request. This is also set via the PRME_TITLE environment variable.")
+	CLIBaseBranch := fs.String("bbranch", defaultValues.BaseBranch, "The name of the base orphan branch to create for the pull request.This is also set via the PRME_BBRANCH environment variable.")
+	CLIHeadBranch := fs.String("hbranch", defaultValues.HeadBranch, "The name of the head review branch to create for the pull request, where review fixes should be pushed. This is also set via the PRME_HBRANCH environment variable.")
 	err = fs.Parse(args)
 	if err != nil {
 		return nil, err
 	}
+	fs.VisitAll(flagOrEnvValue)
 	if *CLIVersion {
 		return nil, fmt.Errorf("%s version %s, git commit %s\n", fs.Name(), Version, GitCommit)
 	}
