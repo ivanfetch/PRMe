@@ -361,7 +361,7 @@ func NewFullPullRequestCreator(repo string, options ...fullPullRequestCreatorOpt
 		Repo:           repo,
 		Token:          "",
 		Title:          "Full Review",
-		Body:           "A full review of the entire repository. When this PR is complete, be sure to manually merge its base branch into the main branch for this repository.",
+		Body:           "A full review of the entire repository. When this PR is complete, be sure to manually merge its head branch into the main branch for this repository.",
 		BaseBranch:     "prme-full-review",
 		HeadBranch:     "prme-full-content",
 		FullRepoBranch: "main",
