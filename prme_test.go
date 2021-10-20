@@ -577,7 +577,7 @@ func TestNewFullPullRequestCreatorFromArgs(t *testing.T) {
 			args:        []string{"dummyRepo"},
 			// Avoid environment in the calling OS breaking the test.
 			setEnv: prme.FullPullRequestCreator{
-				Token:          "",
+				Token:          "dummyToken",
 				FullRepoBranch: "",
 				Title:          "",
 				Body:           "",
@@ -587,10 +587,35 @@ func TestNewFullPullRequestCreatorFromArgs(t *testing.T) {
 			want: prme.FullPullRequestCreator{
 				Repo:           "dummyRepo",
 				FullRepoBranch: "main",
-				Title:          "Full Review",
-				Body:           "A full review of the entire repository. When this PR is complete, be sure to manually merge its base branch into the main branch for this repository.",
-				BaseBranch:     "prme-full-review",
-				HeadBranch:     "prme-full-content",
+				Token:          "dummyToken",
+
+				Title:      "Full Review",
+				Body:       "A full review of the entire repository. When this PR is complete, be sure to manually merge its base branch into the main branch for this repository.",
+				BaseBranch: "prme-full-review",
+				HeadBranch: "prme-full-content",
+			},
+		},
+		{
+			description: "repo with github.com/ prefix",
+			args:        []string{"github.com/dummyRepo"},
+			// Avoid environment in the calling OS breaking the test.
+			setEnv: prme.FullPullRequestCreator{
+				Token:          "dummyToken",
+				FullRepoBranch: "",
+				Title:          "",
+				Body:           "",
+				BaseBranch:     "",
+				HeadBranch:     "",
+			},
+			want: prme.FullPullRequestCreator{
+				Repo:           "dummyRepo",
+				FullRepoBranch: "main",
+				Token:          "dummyToken",
+
+				Title:      "Full Review",
+				Body:       "A full review of the entire repository. When this PR is complete, be sure to manually merge its base branch into the main branch for this repository.",
+				BaseBranch: "prme-full-review",
+				HeadBranch: "prme-full-content",
 			},
 		},
 		{
@@ -617,8 +642,12 @@ func TestNewFullPullRequestCreatorFromArgs(t *testing.T) {
 		{
 			description: "specify flags",
 			args:        []string{"-title", "my review", "-body", "another review!", "-fbranch", "prod", "-bbranch", "base", "-hbranch", "myreview", "myrepo"},
+			setEnv: prme.FullPullRequestCreator{
+				Token: "dummyToken",
+			},
 			want: prme.FullPullRequestCreator{
 				Repo:           "myrepo",
+				Token:          "dummyToken",
 				FullRepoBranch: "prod",
 				Title:          "my review",
 				Body:           "another review!",

@@ -451,16 +451,26 @@ func flagOrEnvValue(f *flag.Flag) {
 }
 
 func NewFullPullRequestCreatorFromArgs(args []string, output, errOutput io.Writer) (*FullPullRequestCreator, error) {
-	fs := flag.NewFlagSet("pr-me", flag.ExitOnError)
+	fs := flag.NewFlagSet("prme", flag.ExitOnError)
 	fs.SetOutput(errOutput)
 	fs.Usage = func() {
-		fmt.Fprintf(errOutput, `Usage: %s [flags] <repository>
-The <repository> should be of the form OwnerName/RepositoryName
-For example: %s ivanfetch/pr-me
+		fmt.Fprintf(errOutput, `This program creates a pull request that reviews all content of a Github repository.
 
-		`, fs.Name(), fs.Name())
+The GH_TOKEN environment variable must be set to a Github personal access token. To create a token, see https://github.com/settings/tokens
+
+Usage: %s [flags] <repository>
+The <repository> should be of the form OwnerName/RepositoryName
+
+For example:
+export GH_TOKEN='ghp_.....'
+%s ivanfetch/pr-me
+
+Available command-line flags:
+`,
+			fs.Name(), fs.Name())
 		fs.PrintDefaults()
-		fmt.Fprintf(errOutput, `The following environment variables override defaults. Command-line flags will override everything.
+		fmt.Fprintf(errOutput, `
+The following environment variables override defaults. Command-line flags will override everything.
 
 		<Environment Variable>	<Current Value>
 PRME_FBRANCH	%q
@@ -478,7 +488,7 @@ PRME_HBRANCH	%q
 	}
 
 	CLIVersion := fs.Bool("version", false, "Display the version and git commit.")
-	CLIFullRepoBranch := fs.String("fbranch", defaultValues.FullRepoBranch, "The name of the existing branch that contains repository content to be reviewed. This is also set via the PRME_FBRANCH environment variable.")
+	CLIFullRepoBranch := fs.String("fbranch", defaultValues.FullRepoBranch, "The name of the existing branch, such as main or master, containing all repository content. This is also set via the PRME_FBRANCH environment variable.")
 	CLITitle := fs.String("title", defaultValues.Title, "The title of the pull request. This is also set via the PRME_TITLE environment variable.")
 	CLIBody := fs.String("body", defaultValues.Body, "The body; first comment of the pull request. This is also set via the PRME_TITLE environment variable.")
 	CLIBaseBranch := fs.String("bbranch", defaultValues.BaseBranch, "The name of the base orphan branch to create for the pull request.This is also set via the PRME_BBRANCH environment variable.")
@@ -491,14 +501,26 @@ PRME_HBRANCH	%q
 	if *CLIVersion {
 		return nil, fmt.Errorf("%s version %s, git commit %s\n", fs.Name(), Version, GitCommit)
 	}
-	if fs.NArg() != 1 {
-		return nil, errors.New("Please specify one repository, of the form OwnerName/RepositoryName.")
+	if fs.NArg() == 0 {
+		return nil, fmt.Errorf(
+			`Set the GH_TOKEN environment variable to a Github personal access token, then run this program with a repository name for which you would like a pull request that reviews all files.
+For example: %s IvanFetch/myproject
+
+Run %s -h for additional help.`,
+			fs.Name(), fs.Name())
 	}
-	f, err := NewFullPullRequestCreator(fs.Args()[0])
+	if fs.NArg() > 1 {
+		return nil, fmt.Errorf("Please only specify one repository name, and make sure any command-line flags come first. RUn %s -h for additional help.", fs.Name())
+	}
+	repoName := strings.TrimPrefix(fs.Args()[0], "github.com/")
+	f, err := NewFullPullRequestCreator(repoName)
 	if err != nil {
 		return nil, err
 	}
 	f.Token = os.Getenv("GH_TOKEN")
+	if f.Token == "" {
+		return nil, errors.New("Please set the GH_TOKEN environment variable to a Github personal access token. Tokens can be managed at https://github.com/settings/tokens")
+	}
 	f.FullRepoBranch = *CLIFullRepoBranch
 	f.Title = *CLITitle
 	f.Body = *CLIBody
