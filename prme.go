@@ -61,7 +61,7 @@ func NewClient(token string, options ...clientOption) (*Client, error) {
 }
 
 func (c *Client) MakeAPIRequest(method, URI string) (*http.Response, error) {
-	if strings.HasPrefix(URI, "/") == false {
+	if !strings.HasPrefix(URI, "/") {
 		URI = "/" + URI
 	}
 	URL := c.apiHost + URI
@@ -94,12 +94,9 @@ func (c *Client) MakeAPIRequestWithData(method, URI string, body []byte) (*http.
 	return resp, nil
 }
 
-func RunGitCommand(workingDir string, args ...string) (string, error) {
-	if len(args) == 0 {
-		return "", errors.New("please specify arguments to the git command")
-	}
-	cmd := exec.Command("git")
-	cmd.Args = append(cmd.Args, args...)
+func RunGitCommand(workingDir string, arg string, extraArgs ...string) (string, error) {
+	args := append([]string{arg}, extraArgs...)
+	cmd := exec.Command("git", args...)
 	cmd.Dir = workingDir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -217,8 +214,8 @@ func (r repo) CreateOrphanBranches(branchNames ...string) error {
 			return err
 		}
 	}
-	gitPushArgs := append([]string{"push", "origin"}, branchNames...)
-	_, err = RunGitCommand(tempDirWithRepo, gitPushArgs...)
+	gitPushArgs := append([]string{"origin"}, branchNames...)
+	_, err = RunGitCommand(tempDirWithRepo, "push", gitPushArgs...)
 	if err != nil {
 		return err
 	}

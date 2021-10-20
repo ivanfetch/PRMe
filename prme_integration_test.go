@@ -13,45 +13,36 @@ import (
 )
 
 func TestCreateFullPullRequestIntegration(t *testing.T) {
-	/* Perhaps use this instead of the +build line
-	   if os.Getenv("PRME_INTEGRATION_TESTS") == "" {
-	   		t.Skip("set the PRME_INTEGRATION_TESTS environment variable to run integration tests")
-	   	}
-	*/
-
 	t.Parallel()
-
+	githubToken := os.Getenv("GH_TOKEN")
 	PRURL, err := prme.CreateFullPullRequest("ivanfetch/ghapitest",
 		prme.WithFullRepoBranch("main"),
-		prme.WithToken(os.Getenv("GH_TOKEN")),
+		prme.WithToken(githubToken),
 		prme.WithTitle("integration test"),
 		prme.WithBody("integration test"),
 		prme.WithBaseBranchName("integrationtest-review-branch"),
 		prme.WithHeadBranchName("integrationtest-content-branch"),
 	)
-
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	t.Logf("created pull request %s", PRURL)
-
-	err = closePullRequest(PRURL)
+	err = closePullRequest(PRURL, githubToken)
 	if err != nil {
 		t.Fatalf("while cleaning up pull request: %v", err)
 	}
-	err = deleteBranch(os.Getenv("GH_TOKEN"), "ivanfetch/ghapiteest", "integrationtest-content-branch")
+	err = deleteBranch("ivanfetch/ghapitest", "integrationtest-content-branch", githubToken)
 	if err != nil {
 		t.Fatalf("while cleaning up head branch: %v", err)
 	}
-	err = deleteBranch(os.Getenv("GH_TOKEN"), "ivanfetch/ghapitest", "integrationtest-review-branch")
+	err = deleteBranch("ivanfetch/ghapitest", "integrationtest-review-branch", githubToken)
 	if err != nil {
 		t.Fatalf("while cleaning up base branch: %v", err)
 	}
 }
 
-func deleteBranch(token, repo, branch string) error {
-	r, err := prme.NewRepo("ivanfetch/ghapitest", os.Getenv("GH_TOKEN"))
+func deleteBranch(repo, branch, token string) error {
+	r, err := prme.NewRepo(repo, token)
 	if err != nil {
 		return err
 	}
@@ -67,13 +58,13 @@ func deleteBranch(token, repo, branch string) error {
 	return nil
 }
 
-func closePullRequest(URL string) error {
-	// A sample pull request URL is: https://github.com/ivanfetch/ghapitest/pull/7
+// A sample pull request URL is: https://github.com/ivanfetch/ghapitest/pull/7
+func closePullRequest(URL, token string) error {
 	URLComponents := strings.Split(URL, "/")
 	repo := URLComponents[3] + "/" + URLComponents[4]
 	PRNumber := URLComponents[6]
 	apiURI := fmt.Sprintf("/repos/%s/pulls/%s", repo, PRNumber)
-	r, err := prme.NewRepo(repo, os.Getenv("GH_TOKEN"))
+	r, err := prme.NewRepo(repo, token)
 	if err != nil {
 		return err
 	}
