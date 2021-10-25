@@ -1,12 +1,12 @@
 package prme_test
 
 import (
+	"github.com/ivanfetch/prme"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"prme"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"

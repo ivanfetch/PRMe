@@ -3,7 +3,7 @@ DOCKER_TAG=pr-me
 DOCKER_REGISTRY=ivanfetch
 VERSION= $(shell (git describe --tags --dirty 2>/dev/null || echo dev) |cut -dv -f2)
 GIT_COMMIT=$(shell git rev-parse HEAD)
-LDFLAGS="-s -w -X prme.Version=$(VERSION) -X prme.GitCommit=$(GIT_COMMIT)"
+LDFLAGS="-s -w -X github.com/ivanfetch/prme.Version=$(VERSION) -X github.com/ivanfetch/prme.GitCommit=$(GIT_COMMIT)"
 
 all: build
 
@@ -16,7 +16,7 @@ vet:go.sum
 	go vet ./...
 
 go.sum:go.mod
-	go get -t prme
+	go get -t github.com/ivanfetch/prme
 
 .PHONY: test
 test:go.sum
@@ -32,6 +32,10 @@ binary:go.sum
 
 .PHONY: build
 build: fmt vet test binary
+
+.PHONY: release
+release: build
+	goreleaser --skip-announce --rm-dist
 
 .PHONY: docker-build
 docker-build: fmt vet integrationtest binary

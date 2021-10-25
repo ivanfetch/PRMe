@@ -1,4 +1,4 @@
-module prme
+module github.com/ivanfetch/prme
 
 go 1.17
 

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"prme"
+	"github.com/ivanfetch/prme"
 )
 
 func main() {

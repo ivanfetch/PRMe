@@ -5,9 +5,9 @@ package prme_test
 
 import (
 	"fmt"
+	"github.com/ivanfetch/prme"
 	"net/http"
 	"os"
-	"prme"
 	"strings"
 	"testing"
 )
