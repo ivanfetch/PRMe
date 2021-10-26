@@ -13,6 +13,7 @@ Pull Request Me (PRMe) creates a pull request for the entire content of a Github
 * Have [Git](https://git-scm.com/downloads) installed.
 	* Be sure Github SSH access to clone and push repositories works correctly, using URLs of the form `ssh://git@github.com/...`.
 * Install this pr-me tool by either:
+	* Run `go install github.com/ivanfetch/prme/cmd/prme@latest`
 	* Directly [downloading a release](https://github.com/ivanfetch/pr-me/releases)
 	* Building from source, after downloading or cloning this repository, by running `make build`
 
