@@ -28,7 +28,7 @@ integrationtest:go.sum
 
 .PHONY: binary
 binary:go.sum
-	go build -ldflags $(LDFLAGS) -o $(BINARY) cmd/main.go
+	go build -ldflags $(LDFLAGS) -o $(BINARY) cmd/prme/main.go
 
 .PHONY: build
 build: fmt vet test binary
