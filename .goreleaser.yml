@@ -1,7 +1,7 @@
 builds:
-- main: cmd/main.go
+- main: cmd/prme/main.go
   binary: prme
-  ldflags: -s -w -X prme.Version={{.Version}} -X prme.GitCommit={{.Commit}}
+  ldflags: -s -w -X github.com/ivanfetch/prme.Version={{.Version}} -X github.com/ivanfetch/prme.GitCommit={{.Commit}}
   env:
   - CGO_ENABLED=0
   goos:

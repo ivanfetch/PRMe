@@ -33,10 +33,6 @@ binary:go.sum
 .PHONY: build
 build: fmt vet test binary
 
-.PHONY: release
-release: build
-	goreleaser --skip-announce --rm-dist
-
 .PHONY: docker-build
 docker-build: fmt vet integrationtest binary
 	docker build -t $(DOCKER_TAG):$(VERSION) .
