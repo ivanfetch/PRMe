@@ -14,8 +14,6 @@ import (
 	"time"
 )
 
-var Version, GitCommit string // Populated by build process
-
 type Client struct {
 	token, apiHost string
 	httpClient     *http.Client
